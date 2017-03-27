@@ -23,7 +23,7 @@ func HTTPServer() http.Handler {
 	mux.Get("/status", http.HandlerFunc(getStatus))
 
 	// Users
-	//mux.Post("/users", http.HandlerFunc(createUser))
+	mux.Post("/users", http.HandlerFunc(createUser))
 	//mux.Get("/users", http.HandlerFunc(getUsers))
 
 	//mux.Get("/users/:user_id", http.HandlerFunc(getUser))

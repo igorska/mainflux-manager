@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/mainflux/mainflux-app-manager/api"
+	"github.com/mainflux/mainflux-app-manager/db"
 	//"github.com/nats-io/go-nats"
 	//"log"
 	"net/http"
@@ -31,9 +32,12 @@ Options:
 
 type (
 	Opts struct {
-		HTTPHost string
-		HTTPPort string
-		Help     bool
+		HTTPHost      string
+		HTTPPort      string
+		MongoHost     string
+		MongoPort     string
+		MongoDatabase string
+		Help          bool
 	}
 
 /*
@@ -57,6 +61,9 @@ func main() {
 
 	flag.StringVar(&opts.HTTPHost, "a", "0.0.0.0", "HTTP host.")
 	flag.StringVar(&opts.HTTPPort, "p", "9090", "HTTP port.")
+	flag.StringVar(&opts.MongoHost, "m", "0.0.0.0", "MongoDB host.")
+	flag.StringVar(&opts.MongoPort, "q", "27017", "MongoDB port.")
+	flag.StringVar(&opts.MongoDatabase, "d", "mainflux", "MongoDB database.")
 	flag.BoolVar(&opts.Help, "h", false, "Show help.")
 	flag.BoolVar(&opts.Help, "help", false, "Show help.")
 
@@ -74,6 +81,9 @@ func main() {
 		log.Fatalf("NATS: Can't connect: %v\n", err)
 	}
 	*/
+
+	// MongoDb
+	db.InitMongo(opts.MongoHost, opts.MongoPort, opts.MongoDatabase)
 
 	// Print banner
 	color.Cyan(banner)
