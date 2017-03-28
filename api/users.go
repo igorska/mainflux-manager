@@ -202,20 +202,6 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	id := bone.GetValue(r, "user_id")
 
-	// Get User
-	d := models.User{}
-	err := Db.C("users").Find(bson.M{"id": id}).One(&d)
-	if err != nil {
-		log.Print(err)
-		w.WriteHeader(http.StatusNotFound)
-		str := `{"response": "not found", "id": "` + id + `"}`
-		if err != nil {
-			log.Print(err)
-		}
-		io.WriteString(w, str)
-		return
-	}
-
 	// Delete user
 	if err := Db.C("users").Remove(bson.M{"id": id}); err != nil {
 		log.Print(err)
