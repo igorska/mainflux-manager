@@ -24,9 +24,9 @@ func HTTPServer() http.Handler {
 
 	// Users
 	mux.Post("/users", http.HandlerFunc(createUser))
-	//mux.Get("/users", http.HandlerFunc(getUsers))
+	mux.Get("/users", http.HandlerFunc(getUsers))
 
-	//mux.Get("/users/:user_id", http.HandlerFunc(getUser))
+	mux.Get("/users/:user_id", http.HandlerFunc(getUser))
 	//mux.Put("/users/:user_id", http.HandlerFunc(updateUser))
 
 	//mux.Delete("/users/:user_id", http.HandlerFunc(deleteUser))

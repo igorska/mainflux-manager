@@ -16,8 +16,15 @@ import (
 
 	"github.com/satori/go.uuid"
 	"io"
-	//"io/ioutil"
+	"io/ioutil"
+
+	"encoding/json"
+	"log"
 	"net/http"
+
+	"github.com/go-zoo/bone"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 /** == Functions == */
@@ -84,4 +91,103 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	// Send RSP
 	w.Header().Set("Location", fmt.Sprintf("/users/%s", u.ID))
 	w.WriteHeader(http.StatusCreated)
+}
+
+func getUsers(w http.ResponseWriter, r *http.Request) {
+	Db := db.MgoDb{}
+	Db.Init()
+	defer Db.Close()
+
+	results := []models.User{}
+	if err := Db.C("users").Find(nil).All(&results); err != nil {
+		log.Print(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	res, err := json.Marshal(results)
+	if err != nil {
+		log.Print(err)
+	}
+	io.WriteString(w, string(res))
+}
+
+func getUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	Db := db.MgoDb{}
+	Db.Init()
+	defer Db.Close()
+
+	id := bone.GetValue(r, "user_id")
+
+	result := models.User{}
+	err := Db.C("users").Find(bson.M{"id": id}).One(&result)
+	if err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusNotFound)
+		str := `{"response": "not found", "id": "` + id + `"}`
+		io.WriteString(w, str)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	res, err := json.Marshal(result)
+	if err != nil {
+		log.Print(err)
+	}
+	io.WriteString(w, string(res))
+}
+
+// updateUser function
+func updateUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(data) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		str := `{"response": "no data provided"}`
+		io.WriteString(w, str)
+		return
+	}
+
+	// if err, str := validateDeviceSchema(data); err {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	io.WriteString(w, str)
+	// 	return
+	// }
+
+	var body map[string]interface{}
+	if err := json.Unmarshal(data, &body); err != nil {
+		panic(err)
+	}
+
+	// Timestamp
+	body["updated"] = time.Now().UTC().Format(time.RFC3339)
+
+	// Init MongoDB
+	Db := db.MgoDb{}
+	Db.Init()
+	defer Db.Close()
+
+	// Device id
+	id := bone.GetValue(r, "device_id")
+
+	colQuerier := bson.M{"id": id}
+	change := bson.M{"$set": body}
+	if err := Db.C("devices").Update(colQuerier, change); err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusNotFound)
+		str := `{"response": "not updated", "id": "` + id + `"}`
+		io.WriteString(w, str)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	str := `{"response": "updated", "id": "` + id + `"}`
+	io.WriteString(w, str)
 }
