@@ -191,3 +191,41 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	str := `{"response": "updated", "id": "` + id + `"}`
 	io.WriteString(w, str)
 }
+
+// deleteUser function
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	Db := db.MgoDb{}
+	Db.Init()
+	defer Db.Close()
+
+	id := bone.GetValue(r, "user_id")
+
+	// Get User
+	d := models.User{}
+	err := Db.C("users").Find(bson.M{"id": id}).One(&d)
+	if err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusNotFound)
+		str := `{"response": "not found", "id": "` + id + `"}`
+		if err != nil {
+			log.Print(err)
+		}
+		io.WriteString(w, str)
+		return
+	}
+
+	// Delete user
+	if err := Db.C("users").Remove(bson.M{"id": id}); err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusNotFound)
+		str := `{"response": "not deleted", "id": "` + id + `"}`
+		io.WriteString(w, str)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	str := `{"response": "deleted", "id": "` + id + `"}`
+	io.WriteString(w, str)
+}
