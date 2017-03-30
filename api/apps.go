@@ -29,70 +29,49 @@ import (
 
 /** == Functions == */
 
-// createUser function
-func createUser(w http.ResponseWriter, r *http.Request) {
-	// Set up defaults and pick up new values from user-provided JSON
-	u := models.User{}
+// createApp function
+func createApp(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("here")
+	// Set up defaults and pick up new values from app-provided JSON
+	a := models.App{}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	/*
-		data, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		if len(data) > 0 {
-			if err, str := validateUserSchema(data); err {
-				w.WriteHeader(http.StatusBadRequest)
-				io.WriteString(w, str)
-				return
-			}
-
-			if err := json.Unmarshal(data, &d); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				str := `{"response": "cannot decode body"}`
-				io.WriteString(w, str)
-				return
-			}
-		}
-	*/
-
-	u.Name = "Default name"
+	a.Name = "Default name"
 
 	// Creating UUID Version 4
 	uuid := uuid.NewV4()
-	u.ID = uuid.String()
+	a.ID = uuid.String()
 
 	// Timestamp
 	t := time.Now().UTC().Format(time.RFC3339)
-	u.Created, u.Updated = t, t
+	a.Created, a.Updated = t, t
 
 	// Init MongoDB
 	Db := db.MgoDb{}
 	Db.Init()
 	defer Db.Close()
 
-	// Insert User
-	if err := Db.C("users").Insert(u); err != nil {
+	// Insert app
+	if err := Db.C("apps").Insert(a); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		str := `{"response": "cannot create user"}`
+		str := `{"response": "cannot create app"}`
 		io.WriteString(w, str)
 		return
 	}
 
 	// Send RSP
-	w.Header().Set("Location", fmt.Sprintf("/users/%s", u.ID))
+	w.Header().Set("Location", fmt.Sprintf("/apps/%s", a.ID))
 	w.WriteHeader(http.StatusCreated)
 }
 
-func getUsers(w http.ResponseWriter, r *http.Request) {
+func getApps(w http.ResponseWriter, r *http.Request) {
 	Db := db.MgoDb{}
 	Db.Init()
 	defer Db.Close()
 
-	results := []models.User{}
-	if err := Db.C("users").Find(nil).All(&results); err != nil {
+	results := []models.App{}
+	if err := Db.C("apps").Find(nil).All(&results); err != nil {
 		log.Print(err)
 	}
 
@@ -105,17 +84,17 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(res))
 }
 
-func getUser(w http.ResponseWriter, r *http.Request) {
+func getApp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	Db := db.MgoDb{}
 	Db.Init()
 	defer Db.Close()
 
-	id := bone.GetValue(r, "user_id")
+	id := bone.GetValue(r, "app_id")
 
-	result := models.User{}
-	err := Db.C("users").Find(bson.M{"id": id}).One(&result)
+	result := models.App{}
+	err := Db.C("apps").Find(bson.M{"id": id}).One(&result)
 	if err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusNotFound)
@@ -132,8 +111,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(res))
 }
 
-// updateUser function
-func updateUser(w http.ResponseWriter, r *http.Request) {
+// updateApp function
+func updateApp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	data, err := ioutil.ReadAll(r.Body)
@@ -161,12 +140,12 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	Db.Init()
 	defer Db.Close()
 
-	// User id
-	id := bone.GetValue(r, "user_id")
+	// App id
+	id := bone.GetValue(r, "app_id")
 
 	colQuerier := bson.M{"id": id}
 	change := bson.M{"$set": body}
-	if err := Db.C("users").Update(colQuerier, change); err != nil {
+	if err := Db.C("apps").Update(colQuerier, change); err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusNotFound)
 		str := `{"response": "not updated", "id": "` + id + `"}`
@@ -179,18 +158,18 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-// deleteUser function
-func deleteUser(w http.ResponseWriter, r *http.Request) {
+// deleteApp function
+func deleteApp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	Db := db.MgoDb{}
 	Db.Init()
 	defer Db.Close()
 
-	id := bone.GetValue(r, "user_id")
+	id := bone.GetValue(r, "app_id")
 
-	// Delete user
-	if err := Db.C("users").Remove(bson.M{"id": id}); err != nil {
+	// Delete app
+	if err := Db.C("apps").Remove(bson.M{"id": id}); err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusNotFound)
 		str := `{"response": "not deleted", "id": "` + id + `"}`

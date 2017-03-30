@@ -32,13 +32,13 @@ func HTTPServer() http.Handler {
 	mux.Delete("/users/:user_id", http.HandlerFunc(deleteUser))
 
 	// Apps
-	//mux.Post("/apps", http.HandlerFunc(createApp))
-	//mux.Get("/apps", http.HandlerFunc(getApps))
+	mux.Post("/apps", http.HandlerFunc(createApp))
+	mux.Get("/apps", http.HandlerFunc(getApps))
 
-	//mux.Get("/apps/:app_id", http.HandlerFunc(getApp))
-	//mux.Put("/apps/:app_id", http.HandlerFunc(updateApp))
+	mux.Get("/apps/:app_id", http.HandlerFunc(getApp))
+	mux.Put("/apps/:app_id", http.HandlerFunc(updateApp))
 
-	//mux.Delete("/apps/:app_id", http.HandlerFunc(deleteApp))
+	mux.Delete("/apps/:app_id", http.HandlerFunc(deleteApp))
 
 	n := negroni.Classic()
 	n.UseHandler(mux)
