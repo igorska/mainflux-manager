@@ -22,6 +22,30 @@ func HTTPServer() http.Handler {
 	// Status
 	mux.Get("/status", http.HandlerFunc(getStatus))
 
+	// Devices
+	mux.Post("/devices", http.HandlerFunc(createDevice))
+	mux.Get("/devices", http.HandlerFunc(getDevices))
+
+	mux.Get("/devices/:device_id", http.HandlerFunc(getDevice))
+	mux.Put("/devices/:device_id", http.HandlerFunc(updateDevice))
+
+	mux.Delete("/devices/:device_id", http.HandlerFunc(deleteDevice))
+
+	mux.Post("/devices/:device_id/plug", http.HandlerFunc(plugDevice))
+	mux.Post("/devices/:device_id/unplug", http.HandlerFunc(unplugDevice))
+
+	// Channels
+	mux.Post("/channels", http.HandlerFunc(createChannel))
+	mux.Get("/channels", http.HandlerFunc(getChannels))
+
+	mux.Get("/channels/:channel_id", http.HandlerFunc(getChannel))
+	mux.Put("/channels/:channel_id", http.HandlerFunc(updateChannel))
+
+	mux.Delete("/channels/:channel_id", http.HandlerFunc(deleteChannel))
+
+	mux.Post("/channels/:channel_id/plug", http.HandlerFunc(plugChannel))
+	mux.Post("/channels/:channel_id/unplug", http.HandlerFunc(unplugChannel))
+
 	// Users
 	mux.Post("/users", http.HandlerFunc(createUser))
 	mux.Get("/users", http.HandlerFunc(getUsers))

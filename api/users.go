@@ -36,28 +36,6 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	/*
-		data, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		if len(data) > 0 {
-			if err, str := validateUserSchema(data); err {
-				w.WriteHeader(http.StatusBadRequest)
-				io.WriteString(w, str)
-				return
-			}
-
-			if err := json.Unmarshal(data, &d); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				str := `{"response": "cannot decode body"}`
-				io.WriteString(w, str)
-				return
-			}
-		}
-	*/
-
 	u.Name = "Default name"
 
 	// Creating UUID Version 4

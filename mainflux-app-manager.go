@@ -39,22 +39,7 @@ type (
 		MongoDatabase string
 		Help          bool
 	}
-
-/*
-	NatsMsg struct {
-		Channel   string `json:"channel"`
-		Publisher string `json:"publisher"`
-		Protocol  string `json:"protocol"`
-		Payload   []byte `json:"payload"`
-	}
-*/
 )
-
-/*
-var (
-	NatsConn *nats.Conn
-)
-*/
 
 func main() {
 	opts := Opts{}
@@ -74,27 +59,15 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Connect to NATS broker
-	/*var err error
-	NatsConn, err = nats.Connect("nats://" + opts.NatsHost + ":" + opts.NatsPort)
-	if err != nil {
-		log.Fatalf("NATS: Can't connect: %v\n", err)
-	}
-	*/
-
 	// MongoDb
 	db.InitMongo(opts.MongoHost, opts.MongoPort, opts.MongoDatabase)
 
 	// Print banner
 	color.Cyan(banner)
 
-	// Subscribe to NATS
-	//NatsConn.Subscribe("mainflux/core/out", influxdbHandler)
-
 	// Serve HTTP
 	httpAddr := fmt.Sprintf("%s:%s", opts.HTTPHost, opts.HTTPPort)
 	http.ListenAndServe(httpAddr, api.HTTPServer())
-
 }
 
 var banner = `
