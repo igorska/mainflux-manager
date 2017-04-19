@@ -15,8 +15,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mainflux/mainflux-app-manager/db"
-	"github.com/mainflux/mainflux-app-manager/models"
+	"github.com/mainflux/mainflux-manager/db"
+	"github.com/mainflux/mainflux-manager/models"
 
 	"github.com/satori/go.uuid"
 	"gopkg.in/mgo.v2/bson"
