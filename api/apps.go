@@ -32,7 +32,7 @@ import (
 // createApp function
 func createApp(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("here")
-	// Set up defaults and pick up new values from app-provided JSON
+	// Set up defaults and pick up new values from application-provided JSON
 	a := models.App{}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
