@@ -1,0 +1,16 @@
+package: github.com/mainflux/mainflux-manager
+import:
+- package: github.com/codegangsta/negroni
+  version: ^0.2.0
+- package: github.com/fatih/color
+  version: ^1.4.1
+- package: github.com/go-zoo/bone
+  version: ^1.2.0
+- package: github.com/satori/go.uuid
+  version: ^1.1.0
+- package: gopkg.in/mgo.v2
+  subpackages:
+  - bson
+testImport:
+- package: gopkg.in/ory-am/dockertest.v3
+  version: ^3.0.6
