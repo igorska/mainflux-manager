@@ -16,7 +16,7 @@ import (
 	"testing"
 
 	"github.com/mainflux/mainflux-manager/api"
-	mfxdb "github.com/mainflux/mainflux-manger/db"
+	mfxdb "github.com/mainflux/mainflux-manager/db"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/ory-am/dockertest.v3"
