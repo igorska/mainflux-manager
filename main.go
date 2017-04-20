@@ -16,7 +16,7 @@ import (
 	"github.com/mainflux/mainflux-manager/api"
 	"github.com/mainflux/mainflux-manager/db"
 	//"github.com/nats-io/go-nats"
-	//"log"
+	"log"
 	"net/http"
 	"os"
 )
@@ -67,7 +67,7 @@ func main() {
 
 	// Serve HTTP
 	httpAddr := fmt.Sprintf("%s:%s", opts.HTTPHost, opts.HTTPPort)
-	http.ListenAndServe(httpAddr, api.HTTPServer())
+	log.Fatal(http.ListenAndServe(httpAddr, api.HTTPServer()))
 }
 
 var banner = `
