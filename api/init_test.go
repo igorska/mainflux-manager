@@ -16,7 +16,7 @@ import (
 	"testing"
 
 	"github.com/mainflux/mainflux-manager/api"
-	"github.com/mainflux/mainflux-manger/db"
+	mfxdb "github.com/mainflux/mainflux-manger/db"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/ory-am/dockertest.v3"
@@ -50,8 +50,8 @@ func TestMain(m *testing.M) {
 			return err
 		}
 
-		db.SetMainSession(db)
-		db.SetMainDb("mainflux_test")
+		mfxdb.SetMainSession(db)
+		mfxdb.SetMainDb("mainflux_test")
 
 		return db.Ping()
 	}); err != nil {
