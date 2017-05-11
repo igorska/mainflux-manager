@@ -16,6 +16,7 @@ import (
 	"github.com/mainflux/mainflux-manager/api"
 	"github.com/mainflux/mainflux-manager/db"
 	//"github.com/nats-io/go-nats"
+	"github.com/cenkalti/backoff"
 	"log"
 	"net/http"
 	"os"
@@ -41,9 +42,20 @@ type (
 	}
 )
 
-func main() {
-	opts := Opts{}
+var (
+	opts Opts
+)
 
+func tryMongoInit() error {
+	var err error
+
+	log.Print("Connecting to MongoDB... ")
+	err = db.InitMongo(opts.MongoHost, opts.MongoPort, opts.MongoDatabase)
+	return err
+}
+
+func main() {
+	// opts := Opts{}
 	flag.StringVar(&opts.HTTPHost, "a", "0.0.0.0", "HTTP host.")
 	flag.StringVar(&opts.HTTPPort, "p", "9090", "HTTP port.")
 	flag.StringVar(&opts.MongoHost, "m", "0.0.0.0", "MongoDB host.")
@@ -60,7 +72,13 @@ func main() {
 	}
 
 	// MongoDb
-	db.InitMongo(opts.MongoHost, opts.MongoPort, opts.MongoDatabase)
+	// db.InitMongo(opts.MongoHost, opts.MongoPort, opts.MongoDatabase)
+	// Connect to MongoDB
+	if err := backoff.Retry(tryMongoInit, backoff.NewExponentialBackOff()); err != nil {
+		log.Fatalf("MongoDd: Can't connect: %v\n", err)
+	} else {
+		log.Println("OK")
+	}
 
 	// Print banner
 	color.Cyan(banner)

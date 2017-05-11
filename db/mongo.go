@@ -32,9 +32,9 @@ func InitMongo(host string, port string, db string) error {
 	if mainSession == nil {
 		mainSession, err = mgo.Dial("mongodb://" + host + ":" + port)
 
-		if err != nil {
-			panic(err)
-		}
+		// if err != nil {
+		// 	panic(err)
+		// }
 
 		mainSession.SetMode(mgo.Monotonic, true)
 		mainDb = mainSession.DB(db)
