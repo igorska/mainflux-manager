@@ -19,6 +19,7 @@ import (
 	mathrand "math/rand"
 	"net"
 	"net/http"
+	libpath "path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -464,7 +465,8 @@ func (s *DockerServer) createContainer(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid container name", http.StatusInternalServerError)
 		return
 	}
-	if _, err := s.findImage(config.Image); err != nil {
+	imageID, err := s.findImage(config.Image)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -511,6 +513,9 @@ func (s *DockerServer) createContainer(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	s.cMut.Lock()
+	if val, ok := s.uploadedFiles[imageID]; ok {
+		s.uploadedFiles[container.ID] = val
+	}
 	if container.Name != "" {
 		for _, c := range s.containers {
 			if c.Name == container.Name {
@@ -589,35 +594,35 @@ func (s *DockerServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 
 func (s *DockerServer) uploadToContainer(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	container, _, err := s.findContainer(id)
+	_, _, err := s.findContainer(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	if !container.State.Running {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Container %s is not running", id)
-		return
-	}
 	path := r.URL.Query().Get("path")
+	if r.Body != nil {
+		tr := tar.NewReader(r.Body)
+		if hdr, _ := tr.Next(); hdr != nil {
+			path = libpath.Join(path, hdr.Name)
+		}
+	}
+	s.cMut.Lock()
 	s.uploadedFiles[id] = path
+	s.cMut.Unlock()
 	w.WriteHeader(http.StatusOK)
 }
 
 func (s *DockerServer) downloadFromContainer(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	container, _, err := s.findContainer(id)
+	_, _, err := s.findContainer(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	if !container.State.Running {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Container %s is not running", id)
-		return
-	}
 	path := r.URL.Query().Get("path")
+	s.cMut.RLock()
 	val, ok := s.uploadedFiles[id]
+	s.cMut.RUnlock()
 	if !ok || val != path {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Path %s not found", path)
@@ -879,6 +884,11 @@ func (s *DockerServer) commitContainer(w http.ResponseWriter, r *http.Request) {
 		s.imgIDs[repository] = image.ID
 	}
 	s.iMut.Unlock()
+	s.cMut.Lock()
+	if val, ok := s.uploadedFiles[container.ID]; ok {
+		s.uploadedFiles[image.ID] = val
+	}
+	s.cMut.Unlock()
 	fmt.Fprintf(w, `{"ID":%q}`, image.ID)
 }
 
@@ -976,7 +986,11 @@ func (s *DockerServer) pullImage(w http.ResponseWriter, r *http.Request) {
 	s.images = append(s.images, image)
 	if fromImageName != "" {
 		if tag != "" {
-			fromImageName = fmt.Sprintf("%s:%s", fromImageName, tag)
+			separator := ":"
+			if strings.HasPrefix(tag, "sha256") {
+				separator = "@"
+			}
+			fromImageName = fmt.Sprintf("%s%s%s", fromImageName, separator, tag)
 		}
 		s.imgIDs[fromImageName] = image.ID
 	}
@@ -1132,8 +1146,8 @@ func (s *DockerServer) createExecContainer(w http.ResponseWriter, r *http.Reques
 	container.ExecIDs = append(container.ExecIDs, execID)
 
 	exec := docker.ExecInspect{
-		ID:        execID,
-		Container: *container,
+		ID:          execID,
+		ContainerID: container.ID,
 	}
 
 	var params docker.CreateExecOptions

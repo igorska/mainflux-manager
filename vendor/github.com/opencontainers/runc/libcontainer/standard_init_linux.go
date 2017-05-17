@@ -11,16 +11,17 @@ import (
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/keys"
-	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runc/libcontainer/seccomp"
 	"github.com/opencontainers/runc/libcontainer/system"
+	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
 type linuxStandardInit struct {
-	pipe       *os.File
-	parentPid  int
-	stateDirFD int
-	config     *initConfig
+	pipe          *os.File
+	consoleSocket *os.File
+	parentPid     int
+	stateDirFD    int
+	config        *initConfig
 }
 
 func (l *linuxStandardInit) getSessionRingParams() (string, uint32, uint32) {
@@ -78,7 +79,7 @@ func (l *linuxStandardInit) Init() error {
 	// but *after* we've given the user the chance to set up all of the mounts
 	// they wanted.
 	if l.config.CreateConsole {
-		if err := setupConsole(l.pipe, l.config, true); err != nil {
+		if err := setupConsole(l.consoleSocket, l.config, true); err != nil {
 			return err
 		}
 		if err := system.Setctty(); err != nil {

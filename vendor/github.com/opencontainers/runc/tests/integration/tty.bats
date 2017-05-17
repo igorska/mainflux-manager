@@ -24,6 +24,10 @@ function teardown() {
 }
 
 @test "runc run [tty owner]" {
+	# tty chmod is not doable in rootless containers.
+	# TODO: this can be made as a change to the gid test.
+	requires root
+
 	# Replace sh script with stat.
 	sed -i 's/"sh"/"sh", "-c", "stat -c %u:%g $(tty) | tr : \\\\\\\\n"/' config.json
 
@@ -36,6 +40,9 @@ function teardown() {
 }
 
 @test "runc run [tty owner] ({u,g}id != 0)" {
+	# tty chmod is not doable in rootless containers.
+	requires root
+
 	# replace "uid": 0 with "uid": 1000
 	# and do a similar thing for gid.
 	sed -i 's;"uid": 0;"uid": 1000;g' config.json
@@ -57,9 +64,6 @@ function teardown() {
 	runc run -d --console-socket $CONSOLE_SOCKET test_busybox
 	[ "$status" -eq 0 ]
 
-	# check state
-	wait_for_container 15 1 test_busybox
-
 	# make sure we're running
 	testcontainer test_busybox running
 
@@ -72,12 +76,13 @@ function teardown() {
 }
 
 @test "runc exec [tty owner]" {
+	# tty chmod is not doable in rootless containers.
+	# TODO: this can be made as a change to the gid test.
+	requires root
+
 	# run busybox detached
 	runc run -d --console-socket $CONSOLE_SOCKET test_busybox
 	[ "$status" -eq 0 ]
-
-	# check state
-	wait_for_container 15 1 test_busybox
 
 	# make sure we're running
 	testcontainer test_busybox running
@@ -90,6 +95,9 @@ function teardown() {
 }
 
 @test "runc exec [tty owner] ({u,g}id != 0)" {
+	# tty chmod is not doable in rootless containers.
+	requires root
+
 	# replace "uid": 0 with "uid": 1000
 	# and do a similar thing for gid.
 	sed -i 's;"uid": 0;"uid": 1000;g' config.json
@@ -98,9 +106,6 @@ function teardown() {
 	# run busybox detached
 	runc run -d --console-socket $CONSOLE_SOCKET test_busybox
 	[ "$status" -eq 0 ]
-
-	# check state
-	wait_for_container 15 1 test_busybox
 
 	# make sure we're running
 	testcontainer test_busybox running

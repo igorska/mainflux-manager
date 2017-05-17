@@ -707,7 +707,7 @@ type HostConfig struct {
 	MemoryReservation    int64                  `json:"MemoryReservation,omitempty" yaml:"MemoryReservation,omitempty" toml:"MemoryReservation,omitempty"`
 	KernelMemory         int64                  `json:"KernelMemory,omitempty" yaml:"KernelMemory,omitempty" toml:"KernelMemory,omitempty"`
 	MemorySwap           int64                  `json:"MemorySwap,omitempty" yaml:"MemorySwap,omitempty" toml:"MemorySwap,omitempty"`
-	MemorySwappiness     int64                  `json:"MemorySwappiness,omitempty" yaml:"MemorySwappiness,omitempty" toml:"MemorySwappiness,omitempty"`
+	MemorySwappiness     int64                  `json:"MemorySwappiness" yaml:"MemorySwappiness" toml:"MemorySwappiness"`
 	CPUShares            int64                  `json:"CpuShares,omitempty" yaml:"CpuShares,omitempty" toml:"CpuShares,omitempty"`
 	CPUSet               string                 `json:"Cpuset,omitempty" yaml:"Cpuset,omitempty" toml:"Cpuset,omitempty"`
 	CPUSetCPUs           string                 `json:"CpusetCpus,omitempty" yaml:"CpusetCpus,omitempty" toml:"CpusetCpus,omitempty"`
@@ -1293,7 +1293,8 @@ type CommitContainerOptions struct {
 	Tag        string
 	Message    string `qs:"comment"`
 	Author     string
-	Run        *Config `qs:"-"`
+	Changes    []string `qs:"changes"`
+	Run        *Config  `qs:"-"`
 	Context    context.Context
 }
 
@@ -1476,6 +1477,39 @@ func (c *Client) ExportContainer(opts ExportContainerOptions) error {
 		inactivityTimeout: opts.InactivityTimeout,
 		context:           opts.Context,
 	})
+}
+
+// PruneContainersOptions specify parameters to the PruneContainers function.
+//
+// See https://goo.gl/wnkgDT for more details.
+type PruneContainersOptions struct {
+	Filters map[string][]string
+	Context context.Context
+}
+
+// PruneContainersResults specify results from the PruneContainers function.
+//
+// See https://goo.gl/wnkgDT for more details.
+type PruneContainersResults struct {
+	ContainersDeleted []string
+	SpaceReclaimed    int64
+}
+
+// PruneContainers deletes containers which are stopped.
+//
+// See https://goo.gl/wnkgDT for more details.
+func (c *Client) PruneContainers(opts PruneContainersOptions) (*PruneContainersResults, error) {
+	path := "/containers/prune?" + queryString(opts)
+	resp, err := c.do("POST", path, doOptions{context: opts.Context})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var results PruneContainersResults
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, err
+	}
+	return &results, nil
 }
 
 // NoSuchContainer is the error returned when a given container does not exist.

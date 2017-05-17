@@ -5,6 +5,7 @@
 package testing
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -227,6 +228,7 @@ func TestListRunningContainers(t *testing.T) {
 func TestCreateContainer(t *testing.T) {
 	server := DockerServer{}
 	server.imgIDs = map[string]string{"base": "a1234"}
+	server.uploadedFiles = map[string]string{"a1234": "/abcd"}
 	server.buildMuxer()
 	recorder := httptest.NewRecorder()
 	body := `{"Hostname":"", "User":"ubuntu", "Memory":0, "MemorySwap":0, "AttachStdin":false, "AttachStdout":true, "AttachStderr":true,
@@ -260,6 +262,11 @@ func TestCreateContainer(t *testing.T) {
 	expectedBind := []string{"/var/run/docker.sock:/var/run/docker.sock:rw"}
 	if !reflect.DeepEqual(stored.HostConfig.Binds, expectedBind) {
 		t.Errorf("CreateContainer: wrong host config. Expected: %v. Returned %v.", expectedBind, stored.HostConfig.Binds)
+	}
+	if val, ok := server.uploadedFiles[stored.ID]; !ok {
+		t.Error("CreateContainer: uploadedFiles should exist.")
+	} else if val != "/abcd" {
+		t.Errorf("CreateContainer: wrong uploadedFile. Want '/abcd', got %s.", val)
 	}
 }
 
@@ -408,6 +415,7 @@ func TestRenameContainerNotFound(t *testing.T) {
 func TestCommitContainer(t *testing.T) {
 	server := DockerServer{}
 	addContainers(&server, 2)
+	server.uploadedFiles = map[string]string{server.containers[0].ID: "/abcd"}
 	server.buildMuxer()
 	recorder := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/commit?container="+server.containers[0].ID, nil)
@@ -421,6 +429,11 @@ func TestCommitContainer(t *testing.T) {
 	}
 	if server.images[0].Config == nil {
 		t.Error("CommitContainer: image Config should not be nil.")
+	}
+	if val, ok := server.uploadedFiles[server.images[0].ID]; !ok {
+		t.Error("CommitContainer: uploadedFiles should exist.")
+	} else if val != "/abcd" {
+		t.Errorf("CommitContainer: wrong uploadedFile. Want '/abcd', got %s.", val)
 	}
 }
 
@@ -1212,6 +1225,23 @@ func TestPullImageWithTag(t *testing.T) {
 	}
 }
 
+func TestPullImageWithShaTag(t *testing.T) {
+	server := DockerServer{imgIDs: make(map[string]string)}
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/images/create?fromImage=base&tag=sha256:deadc0de", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Errorf("PullImage: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
+	}
+	if len(server.images) != 1 {
+		t.Errorf("PullImage: Want 1 image. Got %d.", len(server.images))
+	}
+	if _, ok := server.imgIDs["base@sha256:deadc0de"]; !ok {
+		t.Error("PullImage: Repository should not be empty.")
+	}
+}
+
 func TestPushImage(t *testing.T) {
 	server := DockerServer{imgIDs: map[string]string{"tsuru/python": "a123"}}
 	server.buildMuxer()
@@ -1643,7 +1673,7 @@ func TestCreateExecContainer(t *testing.T) {
 			EntryPoint: "bash",
 			Arguments:  []string{"-c", "ls"},
 		},
-		Container: *server.containers[0],
+		ContainerID: server.containers[0].ID,
 	}
 
 	if !reflect.DeepEqual(*serverExec, expected) {
@@ -1685,14 +1715,8 @@ func TestInspectExecContainer(t *testing.T) {
 			EntryPoint: "bash",
 			Arguments:  []string{"-c", "ls"},
 		},
-		Container: *server.containers[0],
+		ContainerID: server.containers[0].ID,
 	}
-	got2.Container.State.StartedAt = expected.Container.State.StartedAt
-	got2.Container.State.FinishedAt = expected.Container.State.FinishedAt
-	got2.Container.Config = expected.Container.Config
-	got2.Container.Created = expected.Container.Created
-	got2.Container.NetworkSettings = expected.Container.NetworkSettings
-	got2.Container.ExecIDs = expected.Container.ExecIDs
 
 	if !reflect.DeepEqual(got2, expected) {
 		t.Errorf("InspectContainer: wrong value. Want:\n%#v\nGot:\n%#v\n", expected, got2)
@@ -2259,6 +2283,73 @@ func TestUploadToContainer(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Errorf("UploadToContainer: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
 	}
+	if val, ok := server.uploadedFiles[cont.ID]; !ok {
+		t.Errorf("UploadToContainer: uploadedFiles should exist.")
+	} else if val != "abcd" {
+		t.Errorf("UploadToContainer: wrong uploadedFiles. Want 'abcd'. Got %s.", val)
+	}
+}
+
+func TestUploadToContainerWithBodyTarFile(t *testing.T) {
+	server := DockerServer{}
+	server.buildMuxer()
+	cont := &docker.Container{
+		ID: "id123",
+		State: docker.State{
+			Running:  true,
+			ExitCode: 0,
+		},
+	}
+	buf := new(bytes.Buffer)
+	tw := tar.NewWriter(buf)
+	defer tw.Close()
+	hdr := &tar.Header{
+		Name: "test.tar.gz",
+		Mode: 0600,
+		Size: int64(buf.Len()),
+	}
+	tw.WriteHeader(hdr)
+	tw.Write([]byte("something"))
+	tw.Close()
+	server.containers = append(server.containers, cont)
+	server.uploadedFiles = make(map[string]string)
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("PUT", fmt.Sprintf("/containers/%s/archive?path=abcd", cont.ID), buf)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Errorf("UploadToContainer: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
+	}
+	if val, ok := server.uploadedFiles[cont.ID]; !ok {
+		t.Errorf("UploadToContainer: uploadedFiles should exist.")
+	} else if val != "abcd/test.tar.gz" {
+		t.Errorf("UploadToContainer: wrong uploadedFiles. Want 'abcd/test.tar.gz'. Got %s.", val)
+	}
+}
+
+func TestUploadToContainerBodyNotTarFile(t *testing.T) {
+	server := DockerServer{}
+	server.buildMuxer()
+	cont := &docker.Container{
+		ID: "id123",
+		State: docker.State{
+			Running:  true,
+			ExitCode: 0,
+		},
+	}
+	buf := bytes.NewBufferString("something")
+	server.containers = append(server.containers, cont)
+	server.uploadedFiles = make(map[string]string)
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("PUT", fmt.Sprintf("/containers/%s/archive?path=abcd", cont.ID), buf)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Errorf("UploadToContainer: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
+	}
+	if val, ok := server.uploadedFiles[cont.ID]; !ok {
+		t.Errorf("UploadToContainer: uploadedFiles should exist.")
+	} else if val != "abcd" {
+		t.Errorf("UploadToContainer: wrong uploadedFiles. Want 'abcd'. Got %s.", val)
+	}
 }
 
 func TestUploadToContainerMissingContainer(t *testing.T) {
@@ -2318,8 +2409,6 @@ func TestInfoDockerWithSwarm(t *testing.T) {
 			{NodeID: srv2.nodeID, Addr: srv2.SwarmAddress()},
 		},
 	}
-	infoData.Swarm.Cluster.CreatedAt = time.Time{}
-	infoData.Swarm.Cluster.UpdatedAt = time.Time{}
 	if !reflect.DeepEqual(infoData.Swarm, expectedSwarm) {
 		t.Fatalf("InfoDocker: wrong swarm info. Want:\n%#v\nGot:\n%#v", expectedSwarm, infoData.Swarm)
 	}

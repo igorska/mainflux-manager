@@ -14,9 +14,9 @@ type (
 	// Channel is a bidirectional pipe of communication
 	// between devices and applications.
 	//
-	// SENSOR: If a channel is used for sending the measirements from
+	// SENSOR: If a channel is used for sending the measurements from
 	// the sensor of the device, the usual case it that device
-	// writes into th channel and applications listen.
+	// writes into the channel and applications listen.
 	//
 	// ACTUATOR: If a channel is used for triggering action (switches, buttons, relays)
 	// and similar then application must publish the message into the channel, and
