@@ -24,11 +24,14 @@ import (
 
 const (
 	help string = `
-Usage: mainflux-influxdb [options]
+Usage: mainflux-manager [options]
 Options:
-	-a, --host	Host address
-	-p, --port	Port
-	-h, --help	Prints this message end exits`
+	-a, --host		Host address
+	-p, --port		Port
+	-m, --mongo-host	MongoDB host
+	-q, --mongo-port	MongoDB port
+	-d, --mongo-db		MongoDB database
+	-h, --help		Prints this message end exits`
 )
 
 type (
@@ -57,10 +60,15 @@ func tryMongoInit() error {
 func main() {
 	// opts := Opts{}
 	flag.StringVar(&opts.HTTPHost, "a", "0.0.0.0", "HTTP host.")
+	flag.StringVar(&opts.HTTPHost, "host", "0.0.0.0", "HTTP host.")
 	flag.StringVar(&opts.HTTPPort, "p", "9090", "HTTP port.")
+	flag.StringVar(&opts.HTTPPort, "port", "9090", "HTTP port.")
 	flag.StringVar(&opts.MongoHost, "m", "0.0.0.0", "MongoDB host.")
+	flag.StringVar(&opts.MongoHost, "mongo-host", "0.0.0.0", "MongoDB host.")
 	flag.StringVar(&opts.MongoPort, "q", "27017", "MongoDB port.")
+	flag.StringVar(&opts.MongoPort, "mongo-port", "27017", "MongoDB port.")
 	flag.StringVar(&opts.MongoDatabase, "d", "mainflux", "MongoDB database.")
+	flag.StringVar(&opts.MongoDatabase, "mongo-db", "mainflux", "MongoDB database.")
 	flag.BoolVar(&opts.Help, "h", false, "Show help.")
 	flag.BoolVar(&opts.Help, "help", false, "Show help.")
 
@@ -94,7 +102,7 @@ var banner = `
 +-+-+-+-+-+-+-+-+ +-+-+-+ +-+-+-+-+-+-+-+
 
         == Industrial IoT System ==
-       
+
        Made with <3 by Mainflux Team
 [w] http://mainflux.io
 [t] @mainflux
