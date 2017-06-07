@@ -79,6 +79,10 @@ func main() {
 		os.Exit(0)
 	}
 
+	if mongo_host := os.Getenv("MONGO_HOST"); mongo_host != "" {
+		opts.MongoHost = mongo_host
+	}
+
 	// MongoDb
 	// db.InitMongo(opts.MongoHost, opts.MongoPort, opts.MongoDatabase)
 	// Connect to MongoDB
@@ -87,7 +91,6 @@ func main() {
 	} else {
 		log.Println("OK")
 	}
-
 	// Print banner
 	color.Cyan(banner)
 
