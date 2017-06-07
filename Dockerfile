@@ -11,6 +11,7 @@ ENV MONGO_PORT 27017
 ARG app_env
 ENV APP_ENV $app_env
 
+COPY . /go/src/github.com/mainflux/mainflux-manager
 WORKDIR /go/src/github.com/mainflux/mainflux-manager
 
 ###
