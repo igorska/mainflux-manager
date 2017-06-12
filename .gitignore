@@ -7,6 +7,12 @@ node_modules
 *.sln
 *.njsproj
 
+# JetBrains files
+.idea
+
+# Unnecessary folders
+tmp
+
 # Vim files
 # swap
 [._]*.s[a-w][a-z]
